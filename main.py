@@ -1,11 +1,9 @@
 import streamlit as st
 import base64
 import os
+import google.generativeai as genai
 
 # --- PATHS AND CONFIGURATION ---
-# IMPORTANT: Create a folder named 'media' in the same directory as this script.
-# Inside 'media', create sub-folders 'certifications' and 'awards'.
-# Place your images in the appropriate folders.
 MEDIA_DIR = "media"
 PROFILE_PHOTO_PATH = os.path.join(MEDIA_DIR, "profile-photo.jpg")
 LINKEDIN_ICON_PATH = os.path.join(MEDIA_DIR, "linkedin.png")
@@ -16,65 +14,86 @@ AWARDS_DIR = os.path.join(MEDIA_DIR, "awards")
 
 
 # --- PAGE CONFIG ---
-st.set_page_config(layout="wide", page_title="Nizaal Khot | AI/ML Engineer")
+st.set_page_config(
+    layout="wide",
+    page_title="Nizaal Khot | AI/ML Engineer",
+    initial_sidebar_state="collapsed"
+)
+
+# --- GOOGLE AI SETUP ---
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    GEMINI_MODEL = genai.GenerativeModel('gemini-1.5-flash')
+except Exception:
+    st.error("Error configuring Google AI API. Make sure your GOOGLE_API_KEY is set in st.secrets.", icon="🚨")
+    GEMINI_MODEL = None
 
 
 # --- HELPER FUNCTIONS ---
-
 def get_image_as_base64(path):
     """Encodes an image file to a base64 string for embedding in HTML/CSS."""
     if not os.path.exists(path):
-        st.error(f"File not found: {path}")
+        # Don't show an error, just return None. The calling code can handle it.
         return None
     try:
         with open(path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode()
     except Exception as e:
-        st.error(f"Error reading {path}: {e}")
+        st.warning(f"Could not read image {os.path.basename(path)}: {e}")
         return None
-
-def get_images_from_dir(directory):
-    """Gets a list of image paths from a directory, excluding hidden files."""
-    if not os.path.isdir(directory):
-        st.warning(f"Directory not found: {directory}. Please create it.")
-        return []
-    supported_formats = ['.png', '.jpg', '.jpeg', '.gif']
-    # Filter out hidden files (e.g., .DS_Store on macOS)
-    return sorted([os.path.join(directory, f) for f in os.listdir(directory) 
-                   if any(f.lower().endswith(ext) for ext in supported_formats) and not f.startswith('.')])
-
 
 # --- INJECT CUSTOM CSS FOR STYLING ---
 def load_css():
-    """Injects custom CSS into the Streamlit app."""
+    """Injects custom CSS into the Streamlit app for theming and a sticky chat column."""
     st.markdown(f"""
     <style>
-        /* --- General & Layout --- */
-        .stApp {{
-            background-color: #f0f2f6; /* Light gray background */
-            color: #333333;
-        }}
-        h1, h2, h3, h4, h5, h6 {{
-            color: #262730; /* Darker text for headers */
-        }}
-        .stTabs [data-baseweb="tab-list"] {{
-            gap: 24px;
-        }}
-        .stTabs [data-baseweb="tab"] {{
-            height: 50px;
-            white-space: pre-wrap;
-            background-color: transparent;
-            border-radius: 8px;
-            padding: 10px 15px;
-            transition: background-color 0.2s, color 0.2s;
-        }}
-        .stTabs [aria-selected="true"] {{
-            background-color: #FF4B4B; /* Streamlit red for selected tab */
-            color: white;
-            font-weight: bold;
+        /* --- THEME-AWARE VARIABLES --- */
+        :root {{
+            --bg-color: #f0f2f6;
+            --text-color: #333333;
+            --header-color: #262730;
+            --card-bg-color: #ffffff;
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 8px 12px rgba(0,0,0,0.15);
+            --selected-tab-bg: #FF4B4B;
+            --selected-tab-color: white;
+            --tag-bg: #FF4B4B;
+            --tag-color: white;
+            --sidebar-width: 320px;
         }}
 
-        /* --- Header & Profile --- */
+        /* --- DARK THEME OVERRIDES --- */
+        .stApp[theme="dark"] {{
+            --bg-color: #0e1117;
+            --text-color: #fafafa;
+            --header-color: #fafafa;
+            --card-bg-color: #262730;
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            --card-hover-shadow: 0 8px 12px rgba(0,0,0,0.5);
+        }}
+
+        /* --- General & Layout --- */
+        .stApp {{
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }}
+        h1, h2, h3, h4, h5, h6 {{
+            color: var(--header-color);
+        }}
+        
+        /* --- STICKY, FULL-HEIGHT CHAT COLUMN --- */
+        .fixed-chat-container {{
+            position: sticky;
+            top: 0; /* Stick to the top of the viewport */
+            height: 100vh; /* Full screen height */
+            overflow-y: auto; /* Allow scrolling ONLY within the chat column */
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color); /* Match app background */
+            padding: 1rem;
+        }}
+        
+        /* --- Profile & Socials --- */
         .profile-img img {{
             width: 200px;
             height: 200px;
@@ -92,332 +111,208 @@ def load_css():
             transform: scale(1.25);
         }}
 
-        /* --- Metrics & Tags --- */
-        .metric-success {{
-            color: #28a745;
-            font-weight: bold;
-        }}
-        .metric-icon {{
-            font-size: 1.2em;
-            vertical-align: middle;
-        }}
+        /* --- Tags & Expanders --- */
         .skill-tag {{
-            display: inline-block;
-            padding: 0.5em 1em;
-            margin: 0.3em;
-            background-color: #FF4B4B;
-            color: white;
-            border-radius: 16px;
-            font-size: 0.9em;
-            font-weight: 500;
-            transition: transform 0.2s;
+            display: inline-block; padding: 0.5em 1em; margin: 0.3em;
+            background-color: var(--tag-bg); color: var(--tag-color);
+            border-radius: 16px; font-size: 0.9em; font-weight: 500;
         }}
-        .skill-tag:hover {{
-            transform: scale(1.05);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }}
-
-        /* --- Expander Design (used for Projects, Experience, Education, Soft Skills, Certs/Awards) --- */
         div[data-testid="stExpander"] > div:first-child {{
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: #ffffff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
+            padding: 1rem; border-radius: 0.5rem; background-color: var(--card-bg-color);
+            box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s;
             margin-bottom: 1rem;
         }}
         div[data-testid="stExpander"] > div:first-child:hover {{
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+            transform: translateY(-5px); box-shadow: var(--card-hover-shadow);
         }}
         div[data-testid="stExpander"] .streamlit-expanderContent {{
-             background-color: #ffffff;
-             border-radius: 0.5rem;
-             margin-top: -0.5rem; /* Adjust to bring content closer to header */
-             padding: 1.5rem;
-             box-shadow: 0 6px 10px rgba(0,0,0,0.1);
+             background-color: var(--card-bg-color); border-radius: 0.5rem;
+             margin-top: -0.5rem; padding: 1.5rem;
         }}
-        div[data-testid="stExpander"] .streamlit-expanderContent > div > p {{
-            margin-bottom: 0.5rem; /* Spacing for text inside expanders */
-        }}
-
-        /* --- Certifications & Awards Grid --- */
+        
+        /* --- Certs & Awards --- */
         .cert-award-item {{
-            text-align: center;
-            padding: 15px;
-            border-radius: 10px;
-            background-color: #ffffff;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-            transition: transform 0.2s, box-shadow 0.2s;
-            height: 100%; /* Ensure uniform height for expander click area */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            text-align: center; padding: 15px; border-radius: 10px;
+            background-color: var(--card-bg-color); box-shadow: var(--card-shadow);
+            transition: transform 0.2s, box-shadow 0.2s; height: 100%;
         }}
         .cert-award-item:hover {{
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            transform: translateY(-5px); box-shadow: var(--card-hover-shadow);
         }}
         .cert-award-item img {{
-            max-width: 100%;
-            height: 150px; /* Fixed height for image previews */
-            object-fit: contain; /* Ensure entire image is visible */
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }}
-        .cert-award-item .stExpander {{
-            border: none !important; /* Remove expander border inside item */
-            box-shadow: none !important;
-            margin-bottom: 0 !important;
-        }}
-        .cert-award-item div[data-testid="stExpander"] > div:first-child {{
-            background-color: transparent;
-            box-shadow: none;
-            padding: 0;
-            margin-bottom: 0;
-        }}
-        .cert-award-item div[data-testid="stExpander"] .streamlit-expanderContent {{
-            background-color: #f9f9f9; /* Lighter background for content */
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-            padding: 1rem;
-            margin-top: 0.5rem;
-            border-radius: 8px;
-            text-align: left;
+            max-width: 100%; height: 150px; object-fit: contain;
+            border-radius: 8px; margin-bottom: 10px;
         }}
     </style>
     """, unsafe_allow_html=True)
 
-
 # --- DATA ---
-TECHNICAL_SKILLS = {
-    "🤖 ML & AI": [
-        "Agentic AI Development", "Generative AI & Prompt Engineering", "LLM Fine-tuning (GPT, Gemini)",
-        "Model Development (Regression, Classification, Clustering)", "NLP (Sentiment Analysis, Topic Modeling)", "Statistical Analysis & Feature Engineering",
-    ],
-    "🧠 Frameworks": [
-         "LangChain", "LangGraph", "TensorFlow", "Scikit-learn", "PyTorch", "Pandas", "NumPy", "Beautifulsoup", "Playwright", "Selenium", "Keras", "OpenCV",
-    ],
-    "☁️ Cloud & DevOps": [
-        "AWS (EC2, S3, SageMaker)", "Microsoft Azure", "GCP", "CI/CD (Jenkins, GitLab CI)", "Docker & Kubernetes",
-    ],
-    "📊 Data & BI": [
-        "ETL & Data Warehousing", "Web Scraping", "Power Automate & Power Apps", "Power BI & Tableau",
-    ],
-    "💻 Programming": ["Python", "SQL", "JavaScript"],
-}
+# (Your data remains the same)
+PROFESSIONAL_SUMMARY = """
+Results-oriented AI/ML Engineer with 3+ years of experience in developing and deploying scalable
+Machine Learning, Deep Learning, and NLP solutions. Proven track record in leading end-to-end AI
+project lifecycles, from data collection to model deployment and optimization. Expertise in leveraging
+generative AI, NLP, and LLMs for business intelligence, process automation, and predictive analytics.
+Adept at collaborating with cross-functional teams to integrate AI solutions and enhance operational
+efficiency. Passionate about driving innovation and delivering scalable, reliable solutions with a strong
+focus on quality and compliance.
+"""
+TECHNICAL_SKILLS = { "🤖 ML & AI": ["Agentic AI Development", "Generative AI & Prompt Engineering", "LLM Fine-tuning (GPT, Gemini)", "Model Development (Regression, Classification, Clustering)", "NLP (Sentiment Analysis, Topic Modeling)", "Statistical Analysis & Feature Engineering"], "🧠 Frameworks": ["LangChain", "LangGraph", "TensorFlow", "Scikit-learn", "PyTorch", "Pandas", "NumPy", "Beautifulsoup", "Playwright", "Selenium", "Keras", "OpenCV"], "☁️ Cloud & DevOps": ["AWS (EC2, S3, SageMaker)", "Microsoft Azure", "GCP", "CI/CD (Jenkins, GitLab CI)", "Docker & Kubernetes"], "📊 Data & BI": ["ETL & Data Warehousing", "Web Scraping", "Power Automate & Power Apps", "Power BI & Tableau"], "💻 Programming": ["Python", "SQL", "JavaScript"],}
+PROFESSIONAL_EXPERIENCE = { "Software Engineer at Merkle CXM (May 2022 - present)": [ "Developed, trained, and deployed machine learning models using TensorFlow, PyTorch, and scikit-learn, improving prediction accuracy by 15%.", "Engineered robust data pipelines for large-scale data ingestion, reducing processing time by 40%.", "Designed generative AI solutions using GPT/Gemini models to automate workflows, boosting team productivity by 40%.", "Deployed and monitored AI/ML models on AWS, ensuring 99.9% uptime and scalability.", "Mentored junior engineers, improving team-wide adoption of best practices in prompt engineering and model optimization.", "Currently developing agentic AI systems using LangChain and LangGraph to reduce human interaction in complex workflows.", ]}
+PROJECTS = { "E-commerce Product Data Extraction": {"description": "Developed Python-based web scraping pipelines to extract product details, reviews, and recommendations from e-commerce platforms, enabling data-driven insights for competitive analysis.", "tech": ["Python", "Beautifulsoup", "Playwright and Selenium", "Scrapy", "Pandas", "SQL"]}, "AI-Powered Customer Service Chatbot": {"description": "Built and deployed an AI-powered chatbot using GPT models and RAG to automate customer support, resolving over 60% of common inquiries and reducing response times by 75%.", "tech": ["Python", "LangChain", "OpenAI API", "Streamlit", "Docker"]}, "Automated Financial Reporting Workflow": {"description": "Created an automation workflow using Power Automate to streamline the generation of weekly financial reports, improving efficiency and reducing manual effort by 90%.", "tech": ["Power Automate", "SharePoint"]}, "Real-time Image Classification Model": {"description": "Developed and deployed an image classification model using CNNs in TensorFlow to classify product images from a live camera feed with an accuracy of 94%.", "tech": ["TensorFlow", "Keras", "OpenCV", "AWS SageMaker"]}}
+CERTIFICATIONS_DATA = [ {"image_path": os.path.join(CERTIFICATIONS_DIR, "aws_certified_machine_learning_specialty.png"), "title": "AWS Certified Machine Learning – Specialty", "description": "Validated expertise in building, training, tuning, and deploying machine learning models using AWS services."}, {"image_path": os.path.join(CERTIFICATIONS_DIR, "IBM Data Science.png"), "title": "IBM Data Science Professional Certificate", "description": "Acquired proficiency in Python programming, SQL, data analysis, visualization, machine learning, and deep learning through a series of courses."},]
+AWARDS_DATA = [ {"image_path": os.path.join(AWARDS_DIR, "RnR_Individual_Brilliance.jpg"), "title": "Individual Brilliance", "description": "Awarded for significant contributions in internal initiatives and client delivery."}, {"image_path": os.path.join(AWARDS_DIR, "Infinity_Award_Crawl_Build_AI_Re-engineering.JPG"), "title": "Crawl Build AI Re-engineering", "description": "Awarded for significant contributions to innovative AI solution development in 2023-24."}, {"image_path": os.path.join(AWARDS_DIR, "RnR_Meta_build_delivery_and_onboarding_team_Certificate.jpg"), "title": "Client Delivery and Onboarding", "description": "Awarded for significant contributions in team onboarding and client delivery in 2024"},]
+EDUCATION = { "Institution": "M.H. Saboo Siddik College of Engineering, Mumbai", "Degree": "Bachelor of Engineering in Information Technology", "Graduation Year": "2022", "CGPA": "8.48 / 10.00"}
+SOFT_SKILLS = ["Leadership & Mentoring", "Effective Communication", "Agile & Scrum Methodologies", "Creative Problem-Solving", "Stakeholder Collaboration"]
 
-PROJECTS = {
-    "E-commerce Product Data Extraction": {
-        "description": "Developed Python-based web scraping pipelines to extract product details, reviews, and recommendations from e-commerce platforms, enabling data-driven insights for competitive analysis.",
-        "tech": ["Python", "Beautifulsoup", "Playwright and Selenium", "Scrapy", "Pandas", "SQL"]
-    },
-    "AI-Powered Customer Service Chatbot": {
-        "description": "Built and deployed an AI-powered chatbot using GPT models and RAG to automate customer support, resolving over <span class='metric-success'>60% <span class='metric-icon'>⬆️</span></span> of common inquiries and reducing response times by <span class='metric-success'>75% <span class='metric-icon'>⬆️</span></span>.",
-        "tech": ["Python", "LangChain", "OpenAI API", "Streamlit", "Docker"]
-    },
-    "Automated Financial Reporting Workflow": {
-        "description": "Created an automation workflow using Power Automate to streamline the generation of weekly financial reports, improving efficiency and reducing manual effort by <span class='metric-success'>90% <span class='metric-icon'>⬆️</span></span>.",
-        "tech": ["Power Automate", "SharePoint"]
-    },
-    "Real-time Image Classification Model": {
-        "description": "Developed and deployed an image classification model using CNNs in TensorFlow to classify product images from a live camera feed with an accuracy of <span class='metric-success'>94% <span class='metric-icon'>⬆️</span></span>.",
-        "tech": ["TensorFlow", "Keras", "OpenCV", "AWS SageMaker"]
-    }
-}
+# --- CHATBOT KNOWLEDGE BASE & LOGIC ---
+@st.cache_data
+def get_knowledge_base():
+    kb_parts=[f"Name: Nizaal Khot\nRole: AI/ML Engineer | Data Scientist\n\n## Professional Summary\n{PROFESSIONAL_SUMMARY}\n", "## Technical Skills\n" + "\n".join([f"- {cat.split(' ')[-1]}: {', '.join(skills)}" for cat, skills in TECHNICAL_SKILLS.items()]),"\n## Professional Experience\n" + "\n".join([f"- **{title}**\n" + "\n".join([f"  - {p.split('<')[0]}" for p in points]) for title, points in PROFESSIONAL_EXPERIENCE.items()]),"\n## Projects\n" + "\n".join([f"- **{title}**: {details['description'].split('<')[0]} (Tech: {', '.join(details['tech'])})" for title, details in PROJECTS.items()]),f"\n## Education\n- {EDUCATION['Degree']} from {EDUCATION['Institution']} ({EDUCATION['Graduation Year']}, CGPA: {EDUCATION['CGPA']})\n","## Certifications\n" + "\n".join([f"- **{cert['title']}**: {cert['description']}" for cert in CERTIFICATIONS_DATA]),"\n## Awards\n" + "\n".join([f"- **{award['title']}**: {award['description']}" for award in AWARDS_DATA]),"\n## Soft Skills\n- " + ", ".join(SOFT_SKILLS)]
+    return "\n".join(kb_parts)
 
-# Dummy data for Certifications and Awards (replace with your actual data)
-# Each item should have 'title' and 'description' keys. Image path is mandatory.
-CERTIFICATIONS_DATA = [
-    # {"image_path": os.path.join(CERTIFICATIONS_DIR, "cert1.png"), "title": "Generative AI Fundamentals", "description": "Completed a comprehensive course on the fundamentals of Generative AI, covering GANs, VAEs, and diffusion models."},
-    {"image_path": os.path.join(CERTIFICATIONS_DIR, "aws_certified_machine_learning_specialty.png"), "title": "AWS Certified Machine Learning – Specialty", "description": "Validated expertise in building, training, tuning, and deploying machine learning models using AWS services."},
-    {"image_path": os.path.join(CERTIFICATIONS_DIR, "IBM Data Science.png"), "title": "IBM Data Science Professional Certificate", "description": "Acquired proficiency in Python programming, SQL, data analysis, visualization, machine learning, and deep learning through a series of courses."},
-]
-
-AWARDS_DATA = [
-    {"image_path": os.path.join(AWARDS_DIR, "RnR_Individual_Brilliance.jpg"), "title": "Individual Brilliance", "description": "Awarded for significant contributions in internal initiatives and client delivery."},
-    {"image_path": os.path.join(AWARDS_DIR, "Infinity_Award_Crawl_Build_AI_Re-engineering.JPG"), "title": "Crawl Build AI Re-engineering", "description": "Awarded for significant contributions to innovative AI solution development in 2023-24."},
-    {"image_path": os.path.join(AWARDS_DIR, "RnR_Meta_build_delivery_and_onboarding_team_Certificate.jpg"), "title": "Client Delivery and Onboarding", "description": "Awarded for significant contributions in team onboarding and client delivery in 2024"},
-]
+def get_chatbot_response(query, chat_history):
+    if not GEMINI_MODEL: return "The chatbot is currently unavailable. Please check the API key configuration."
+    KNOWLEDGE_BASE=get_knowledge_base()
+    system_prompt=f"You are Nizaal Bot, a friendly AI assistant who will pretend to be Nizaal Khot. Answer questions ONLY based on the KNOWLEDGE BASE below. Be conversational and present your answers in clear format for the person to quickly understand. If the answer isn't in the knowledge base, say you don't have information on that topic. \n\nKNOWLEDGE BASE:\n{KNOWLEDGE_BASE}"
+    try:
+        chat=GEMINI_MODEL.start_chat(history=chat_history)
+        response=chat.send_message(system_prompt + "\n\nUser Question: " + query)
+        return response.text
+    except Exception as e:
+        return f"Sorry, an error occurred."
 
 
-# --- MAIN APP ---
-
-# 1. Load CSS
+# --- MAIN APP LAYOUT ---
 load_css()
 
-# 2. Sidebar Navigation
-st.sidebar.title("Quick Navigation")
-st.sidebar.markdown("[Summary](#professional-summary)")
-st.sidebar.markdown("[Skills](#technical-skills)")
-st.sidebar.markdown("[Experience](#professional-experience)")
-st.sidebar.markdown("[Projects](#projects-handled)")
-st.sidebar.markdown("[Certifications](#certifications)")
-st.sidebar.markdown("[Awards](#awards)")
-st.sidebar.markdown("[Education](#education)")
-st.sidebar.markdown("[Soft Skills](#soft-skills)")
+# Define main layout columns
+main_col, chat_col = st.columns([2, 1])
 
+# --- SIDEBAR (Optional Navigation) ---
+with st.sidebar:
+    st.title("Quick Navigation")
+    st.markdown("[Summary](#professional-summary)")
+    st.markdown("[Skills](#technical-skills)")
+    st.markdown("[Experience](#professional-experience)")
+    st.markdown("[Projects](#projects-handled)")
+    st.markdown("[Certifications](#certifications)")
+    st.markdown("[Awards](#awards)")
+    st.markdown("[Education](#education)")
+    st.markdown("[Soft Skills](#soft-skills)")
 
-# 3. Header Section
-profile_pic_b64 = get_image_as_base64(PROFILE_PHOTO_PATH)
-linkedin_icon_b64 = get_image_as_base64(LINKEDIN_ICON_PATH)
-gmail_icon_b64 = get_image_as_base64(GMAIL_ICON_PATH)
-github_icon_b64 = get_image_as_base64(GITHUB_ICON_PATH)
+# --- MAIN PORTFOLIO CONTENT ---
+with main_col:
+    # Header Section
+    with st.container():
+        col1, col2 = st.columns([0.3, 0.7], gap="large")
+        with col1:
+            if profile_pic_b64 := get_image_as_base64(PROFILE_PHOTO_PATH):
+                st.markdown(f'<div class="profile-img"><img src="data:image/jpeg;base64,{profile_pic_b64}"></div>', unsafe_allow_html=True)
+        with col2:
+            st.title("Nizaal Khot")
+            st.subheader("AI/ML Engineer | Data Scientist")
+            st.write("Passionate about building intelligent systems that solve real-world problems.")
+            # Social Icons
+            icons = {
+                "LinkedIn": (get_image_as_base64(LINKEDIN_ICON_PATH), "https://linkedin.com/in/nizaalkhot"),
+                "GitHub": (get_image_as_base64(GITHUB_ICON_PATH), "https://github.com/nizaalkhot"),
+                "Email": (get_image_as_base64(GMAIL_ICON_PATH), "mailto:nijaal.khot.1@gmail.com"),
+            }
+            social_icons_html = "".join([f'<a href="{url}" target="_blank"><img src="data:image/png;base64,{b64}" width="32"></a>' for name, (b64, url) in icons.items() if b64])
+            st.markdown(f"<div class='social-icons'>{social_icons_html}</div>", unsafe_allow_html=True)
+    
+    st.divider()
 
-with st.container():
-    col1, col2 = st.columns([0.3, 0.7], gap="large")
-    with col1:
-        if profile_pic_b64:
-            st.markdown(f'<div style="text-align: center;"><div class="profile-img"><img src="data:image/png;base64,{profile_pic_b64}"></div></div>', unsafe_allow_html=True)
-        else:
-            st.warning("Profile photo not found. Add 'profile-photo.jpg' to the 'media' folder.")
-
-    with col2:
-        st.title("Nizaal Khot")
-        st.subheader("AI/ML Engineer | Data Scientist")
-        st.write("Passionate about building intelligent systems that solve real-world problems.")
-        
-        # Social Icons with checks
-        social_icons_html = "<div class='social-icons'>"
-        if linkedin_icon_b64:
-            social_icons_html += f'<a href="https://linkedin.com/in/nizaalkhot" target="_blank"><img src="data:image/png;base64,{linkedin_icon_b64}" width="32"></a>'
-        if github_icon_b64:
-            social_icons_html += f'<a href="https://github.com/nizaalkhot" target="_blank"><img src="data:image/png;base64,{github_icon_b64}" width="32"></a>'
-        if gmail_icon_b64:
-            social_icons_html += f'<a href="mailto:nijaal.khot.1@gmail.com"><img src="data:image/png;base64,{gmail_icon_b64}" width="32"></a>'
-        social_icons_html += "</div>"
-        st.markdown(social_icons_html, unsafe_allow_html=True)
-
-st.divider()
-
-# 4. Professional Summary
-with st.container():
+    # Professional Summary
     st.markdown("<h2 id='professional-summary'>👨‍💻 Professional Summary</h2>", unsafe_allow_html=True)
-    st.write("""
-    Results-oriented AI/ML Engineer with 3+ years of experience in developing and deploying scalable
-    Machine Learning, Deep Learning, and NLP solutions. Proven track record in leading end-to-end AI
-    project lifecycles, from data collection to model deployment and optimization. Expertise in leveraging
-    generative AI, NLP, and LLMs for business intelligence, process automation, and predictive analytics.
-    Adept at collaborating with cross-functional teams to integrate AI solutions and enhance operational
-    efficiency. Passionate about driving innovation and delivering scalable, reliable solutions with a strong
-    focus on quality and compliance.
-    """)
+    st.write(PROFESSIONAL_SUMMARY)
+    st.divider()
 
-st.divider()
-
-# 5. Technical Skills
-with st.container():
+    # Technical Skills
     st.markdown("<h2 id='technical-skills'>🛠️ Technical Skills</h2>", unsafe_allow_html=True)
     skill_tabs = st.tabs(list(TECHNICAL_SKILLS.keys()))
-    
     for tab, (category, skills) in zip(skill_tabs, TECHNICAL_SKILLS.items()):
         with tab:
-            skills_html = ''.join([f'<span class="skill-tag">{skill}</span>' for skill in skills])
-            st.markdown(f'<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">{skills_html}</div>', unsafe_allow_html=True)
+            st.markdown(''.join([f'<span class="skill-tag">{skill}</span>' for skill in skills]), unsafe_allow_html=True)
+    st.divider()
 
-st.divider()
-
-# 6. Professional Experience
-with st.container():
+    # Professional Experience
     st.markdown("<h2 id='professional-experience'>💼 Professional Experience</h2>", unsafe_allow_html=True)
-    with st.expander("**Data Engineer | AI/ML Specialist** - Merkle CXM, Mumbai, India | May 2022 - present"):
-        st.markdown("""
-        - Developed, trained, and deployed machine learning models using TensorFlow, PyTorch, and scikit-learn, improving prediction accuracy by <span class='metric-success'>15% <span class='metric-icon'>⬆️</span></span>.
-        - Engineered robust data pipelines for large-scale data ingestion, reducing processing time by <span class='metric-success'>40% <span class='metric-icon'>⬆️</span></span>.
-        - Designed generative AI solutions using GPT/Gemini models to automate workflows, boosting team productivity by <span class='metric-success'>40% <span class='metric-icon'>⬆️</span></span>.
-        - Deployed and monitored AI/ML models on AWS, ensuring 99.9% uptime and scalability.
-        - Mentored junior engineers, improving team-wide adoption of best practices in prompt engineering and model optimization.
-        - Currently developing agentic AI systems using LangChain and LangGraph to reduce human interaction in complex workflows.
-        """, unsafe_allow_html=True)
-    # Add more experience sections using st.expander as needed
+    for title, details in PROFESSIONAL_EXPERIENCE.items():
+        with st.expander(f"**{title}**", expanded=True):
+            for point in details:
+                st.markdown(f"- {point}", unsafe_allow_html=True)
+    st.divider()
 
-st.divider()
-
-# 7. Projects Handled
-with st.container():
+    # Projects Handled
     st.markdown("<h2 id='projects-handled'>🚀 Projects Handled</h2>", unsafe_allow_html=True)
-    st.write("Click on any project title to see the details.")
-    
     for title, details in PROJECTS.items():
         with st.expander(f"**{title}**"):
             st.markdown(details['description'], unsafe_allow_html=True)
-            tech_html = "".join([f'<span class="skill-tag">{tech}</span>' for tech in details["tech"]])
-            st.markdown(f"**Technologies Used:**<br>{tech_html}", unsafe_allow_html=True)
+            st.markdown(f"**Technologies:** {''.join([f'<span class=skill-tag>{t}</span>' for t in details['tech']])}", unsafe_allow_html=True)
+    st.divider()
 
-st.divider()
-
-# 8. Certifications
-with st.container():
-    st.markdown("<h2 id='certifications'>📜 Certifications</h2>", unsafe_allow_html=True)
-    if CERTIFICATIONS_DATA:
-        # Create columns for the grid layout
-        cols = st.columns(3) # Adjust number of columns as desired
-        for i, cert in enumerate(CERTIFICATIONS_DATA):
-            with cols[i % 3]: # Cycle through columns
-                cert_img_b64 = get_image_as_base64(cert["image_path"])
-                if cert_img_b64:
-                    st.markdown(f"""
-                    <div class="cert-award-item">
-                        <img src="data:image/png;base64,{cert_img_b64}" alt="{cert['title']}">
-                        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end;">
-                            <details>
-                                <summary style="font-weight: bold; cursor: pointer;">{cert['title']}</summary>
-                                <p>{cert['description']}</p>
-                            </details>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.warning(f"Image not found for certification: {cert['title']}")
-    else:
-        st.info("No certifications to display. Add data to CERTIFICATIONS_DATA.")
-
-st.divider()
-
-# 9. Awards
-with st.container():
-    st.markdown("<h2 id='awards'>🏆 Awards</h2>", unsafe_allow_html=True)
-    if AWARDS_DATA:
-        # Create columns for the grid layout
-        cols = st.columns(3) # Adjust number of columns as desired
-        for i, award in enumerate(AWARDS_DATA):
-            with cols[i % 3]: # Cycle through columns
-                award_img_b64 = get_image_as_base64(award["image_path"])
-                if award_img_b64:
-                    st.markdown(f"""
-                    <div class="cert-award-item">
-                        <img src="data:image/png;base64,{award_img_b64}" alt="{award['title']}">
-                        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end;">
-                            <details>
-                                <summary style="font-weight: bold; cursor: pointer;">{award['title']}</summary>
-                                <p>{award['description']}</p>
-                            </details>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.warning(f"Image not found for award: {award['title']}")
-    else:
-        st.info("No awards to display. Add data to AWARDS_DATA.")
-
-st.divider()
-
-# 10. Education & Soft Skills
-with st.container():
+    # Certifications & Awards
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("<h2 id='education'>🎓 Education</h2>", unsafe_allow_html=True)
-        with st.expander("**Bachelor of Engineering in Information Technology**"):
-            st.write("**Institution:** M.H. Saboo Siddik College of Engineering, Mumbai")
-            st.write("**Graduation Year:** 2022")
-            st.write("**CGPA:** 8.48 / 10.00")
-
+        st.markdown("<h2 id='certifications'>📜 Certifications</h2>", unsafe_allow_html=True)
+        for cert in CERTIFICATIONS_DATA:
+            if img_b64 := get_image_as_base64(cert["image_path"]):
+                st.markdown(f'<div class="cert-award-item"><img src="data:image/png;base64,{img_b64}" alt="{cert["title"]}"><p><b>{cert["title"]}</b></p></div><br>', unsafe_allow_html=True)
     with col2:
-        st.markdown("<h2 id='soft-skills'>🤝 Soft Skills</h2>", unsafe_allow_html=True)
-        with st.expander("Click to see my soft skills"):
-            st.markdown("""
-            - **Leadership & Mentoring**
-            - **Effective Communication**
-            - **Agile & Scrum Methodologies**
-            - **Creative Problem-Solving**
-            - **Stakeholder Collaboration**
-            """)
+        st.markdown("<h2 id='awards'>🏆 Awards</h2>", unsafe_allow_html=True)
+        for award in AWARDS_DATA:
+            if img_b64 := get_image_as_base64(award["image_path"]):
+                st.markdown(f'<div class="cert-award-item"><img src="data:image/png;base64,{img_b64}" alt="{award["title"]}"><p><b>{award["title"]}</b></p></div><br>', unsafe_allow_html=True)
+    st.divider()
+
+    # Education & Soft Skills
+    st.markdown("<h2 id='education'>🎓 Education</h2>", unsafe_allow_html=True)
+    st.write(f"**{EDUCATION['Degree']}** | {EDUCATION['Institution']} ({EDUCATION['Graduation Year']}) | CGPA: {EDUCATION['CGPA']}")
+    st.markdown("---")
+    st.markdown("<h2>🤝 Soft Skills</h2>", unsafe_allow_html=True)
+    st.markdown(''.join([f'<span class="skill-tag">{skill}</span>' for skill in SOFT_SKILLS]), unsafe_allow_html=True)
+
+
+# --- FIXED CHATBOT COLUMN ---
+with chat_col:
+    st.markdown('<div class="sticky-chat-container">', unsafe_allow_html=True)
+    st.subheader("Chat with Nizaal Bot 💬")
+    st.write("Ask me anything about me!")
+
+    # Initialize chat state
+    if "messages" not in st.session_state:
+        st.session_state.messages = [{"role": "assistant", "content": "Hi there! I am Nizaal. How can I help you?"}]
+    if "chat_history_gemini" not in st.session_state:
+        st.session_state.chat_history_gemini = []
+
+    # Display chat messages
+    chat_log_container = st.container()
+    with chat_log_container:
+        st.markdown('<div class="chat-log">', unsafe_allow_html=True)
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # Chat input
+    if prompt := st.chat_input("Ask a question..."):
+        # Add user message to state and display it
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Get and display assistant response
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                response = get_chatbot_response(prompt, chat_history=st.session_state.chat_history_gemini)
+                st.markdown(response)
+        
+        # Add assistant response to state
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        
+        # Update Gemini's history
+        st.session_state.chat_history_gemini.append({"role": "user", "parts": [prompt]})
+        st.session_state.chat_history_gemini.append({"role": "model", "parts": [response]})
+        st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
