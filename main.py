@@ -235,7 +235,7 @@ CERTIFICATIONS_DATA = [
 
 AWARDS_DATA = [
     {"image_path": os.path.join(AWARDS_DIR, "RnR_Individual_Brilliance.jpg"), "title": "Individual Brilliance", "description": "Awarded for significant contributions in internal initiatives and client delivery."},
-    {"image_path": os.path.join(AWARDS_DIR, "Infinity_Award_Crawl_Build_AI_Re-engineering.jpg"), "title": "Crawl Build AI Re-engineering", "description": "Awarded for significant contributions to innovative AI solution development in 2023-24."},
+    {"image_path": os.path.join(AWARDS_DIR, "Infinity_Award_Crawl_Build_AI_Re-engineering.JPG"), "title": "Crawl Build AI Re-engineering", "description": "Awarded for significant contributions to innovative AI solution development in 2023-24."},
     {"image_path": os.path.join(AWARDS_DIR, "RnR_Meta_build_delivery_and_onboarding_team_Certificate.jpg"), "title": "Client Delivery and Onboarding", "description": "Awarded for significant contributions in team onboarding and client delivery in 2024"},
 ]
 
