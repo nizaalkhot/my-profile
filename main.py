@@ -49,10 +49,6 @@ def load_css():
     <style>
         /* --- THEME-AWARE VARIABLES --- */
         :root {{
-            --bg-color: #f0f2f6;
-            --text-color: #333333;
-            --header-color: #262730;
-            --card-bg-color: #ffffff;
             --card-shadow: 0 4px 6px rgba(0,0,0,0.1);
             --card-hover-shadow: 0 8px 12px rgba(0,0,0,0.15);
             --selected-tab-bg: #FF4B4B;
@@ -61,6 +57,7 @@ def load_css():
             --tag-color: white;
             --sidebar-width: 320px;
         }}
+
 
         /* --- DARK THEME OVERRIDES --- */
         .stApp[theme="dark"] {{
@@ -149,16 +146,10 @@ def load_css():
 # --- DATA ---
 # (Your data remains the same)
 PROFESSIONAL_SUMMARY = """
-Results-oriented AI/ML Engineer with 3+ years of experience in developing and deploying scalable
-Machine Learning, Deep Learning, and NLP solutions. Proven track record in leading end-to-end AI
-project lifecycles, from data collection to model deployment and optimization. Expertise in leveraging
-generative AI, NLP, and LLMs for business intelligence, process automation, and predictive analytics.
-Adept at collaborating with cross-functional teams to integrate AI solutions and enhance operational
-efficiency. Passionate about driving innovation and delivering scalable, reliable solutions with a strong
-focus on quality and compliance.
+Results-oriented Agentic AI Developer and Generative AI Developer with 3+ years of experience in developing and deploying scalable Machine Learning, Deep Learning, and NLP solutions. My expertise spans the entire AI project lifecycle, from data collection to model deployment and optimization, with a strong focus on leveraging generative AI, NLP, and LLMs for impactful business intelligence, process automation, and predictive analytics. I have a proven track record of developing sophisticated agentic AI systems. Adept at collaborating with cross-functional teams to integrate AI solutions and enhance operational efficiency, I am passionate about driving innovation and delivering scalable, reliable solutions with a strong focus on quality and compliance.
 """
 TECHNICAL_SKILLS = { "🤖 ML & AI": ["Agentic AI Development", "Generative AI & Prompt Engineering", "LLM Fine-tuning (GPT, Gemini)", "Model Development (Regression, Classification, Clustering)", "NLP (Sentiment Analysis, Topic Modeling)", "Statistical Analysis & Feature Engineering"], "🧠 Frameworks": ["LangChain", "LangGraph", "TensorFlow", "Scikit-learn", "PyTorch", "Pandas", "NumPy", "Beautifulsoup", "Playwright", "Selenium", "Keras", "OpenCV"], "☁️ Cloud & DevOps": ["AWS (EC2, S3, SageMaker)", "Microsoft Azure", "GCP", "CI/CD (Jenkins, GitLab CI)", "Docker & Kubernetes"], "📊 Data & BI": ["ETL & Data Warehousing", "Web Scraping", "Power Automate & Power Apps", "Power BI & Tableau"], "💻 Programming": ["Python", "SQL", "JavaScript"],}
-PROFESSIONAL_EXPERIENCE = { "Software Engineer at Merkle CXM (May 2022 - present)": [ "Developed, trained, and deployed machine learning models using TensorFlow, PyTorch, and scikit-learn, improving prediction accuracy by 15%.", "Engineered robust data pipelines for large-scale data ingestion, reducing processing time by 40%.", "Designed generative AI solutions using GPT/Gemini models to automate workflows, boosting team productivity by 40%.", "Deployed and monitored AI/ML models on AWS, ensuring 99.9% uptime and scalability.", "Mentored junior engineers, improving team-wide adoption of best practices in prompt engineering and model optimization.", "Currently developing agentic AI systems using LangChain and LangGraph to reduce human interaction in complex workflows.", ]}
+PROFESSIONAL_EXPERIENCE = {"Software Engineer at Merkle CXM (May 2022 - present)":["Engineered robust data pipelines for large-scale data ingestion.","Designed generative AI solutions using GPT/Gemini models to automate workflows, boosting team productivity by 30%.","Collaborated with R&D on GitHub Copilot to implement in the workflows, boosting team productivity and efficiency by 50%.","Mentored junior engineers, improving team-wide adoption of best practices in prompt engineering and model optimization.","Currently developing agentic AI systems using LangChain and LangGraph to reduce human interaction in complex workflows.",]}
 PROJECTS = { "E-commerce Product Data Extraction": {"description": "Developed Python-based web scraping pipelines to extract product details, reviews, and recommendations from e-commerce platforms, enabling data-driven insights for competitive analysis.", "tech": ["Python", "Beautifulsoup", "Playwright and Selenium", "Scrapy", "Pandas", "SQL"]}, "AI-Powered Customer Service Chatbot": {"description": "Built and deployed an AI-powered chatbot using GPT models and RAG to automate customer support, resolving over 60% of common inquiries and reducing response times by 75%.", "tech": ["Python", "LangChain", "OpenAI API", "Streamlit", "Docker"]}, "Automated Financial Reporting Workflow": {"description": "Created an automation workflow using Power Automate to streamline the generation of weekly financial reports, improving efficiency and reducing manual effort by 90%.", "tech": ["Power Automate", "SharePoint"]}, "Real-time Image Classification Model": {"description": "Developed and deployed an image classification model using CNNs in TensorFlow to classify product images from a live camera feed with an accuracy of 94%.", "tech": ["TensorFlow", "Keras", "OpenCV", "AWS SageMaker"]}}
 CERTIFICATIONS_DATA = [ {"image_path": os.path.join(CERTIFICATIONS_DIR, "aws_certified_machine_learning_specialty.png"), "title": "AWS Certified Machine Learning – Specialty", "description": "Validated expertise in building, training, tuning, and deploying machine learning models using AWS services."}, {"image_path": os.path.join(CERTIFICATIONS_DIR, "IBM Data Science.png"), "title": "IBM Data Science Professional Certificate", "description": "Acquired proficiency in Python programming, SQL, data analysis, visualization, machine learning, and deep learning through a series of courses."}, {"image_path": os.path.join(CERTIFICATIONS_DIR, "Azure_AI_Fundamentals.png"), "title": "Microsoft Certified: Azure AI Fundamentals", "description": "Acquired foundational knowledge of artificial intelligence (AI) and machine learning (ML) concepts, and how they're implemented using Microsoft Azure services."},]
 AWARDS_DATA = [ {"image_path": os.path.join(AWARDS_DIR, "RnR_Individual_Brilliance.jpg"), "title": "Individual Brilliance", "description": "Awarded for significant contributions in internal initiatives and client delivery."}, {"image_path": os.path.join(AWARDS_DIR, "Infinity_Award_Crawl_Build_AI_Re-engineering.JPG"), "title": "Crawl Build AI Re-engineering", "description": "Awarded for significant contributions to innovative AI solution development in 2023-24."}, {"image_path": os.path.join(AWARDS_DIR, "RnR_Meta_build_delivery_and_onboarding_team_Certificate.jpg"), "title": "Client Delivery and Onboarding", "description": "Awarded for significant contributions in team onboarding and client delivery in 2024"},]
