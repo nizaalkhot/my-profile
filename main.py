@@ -11,6 +11,7 @@ GMAIL_ICON_PATH = os.path.join(MEDIA_DIR, "gmail.png")
 GITHUB_ICON_PATH = os.path.join(MEDIA_DIR, "github.png")
 CERTIFICATIONS_DIR = os.path.join(MEDIA_DIR, "certifications")
 AWARDS_DIR = os.path.join(MEDIA_DIR, "awards")
+BADGES_DIR = os.path.join(MEDIA_DIR, "badges")
 
 
 # --- PAGE CONFIG ---
@@ -153,6 +154,7 @@ PROFESSIONAL_EXPERIENCE = {"Software Engineer at Merkle CXM (May 2022 - present)
 PROJECTS = { "E-commerce Product Data Extraction": {"description": "Developed Python-based web scraping pipelines to extract product details, reviews, and recommendations from e-commerce platforms, enabling data-driven insights for competitive analysis.", "tech": ["Python", "Beautifulsoup", "Playwright and Selenium", "Scrapy", "Pandas", "SQL"]}, "AI-Powered Customer Service Chatbot": {"description": "Built and deployed an AI-powered chatbot using GPT models and RAG to automate customer support, resolving over 60% of common inquiries and reducing response times by 75%.", "tech": ["Python", "LangChain", "OpenAI API", "Streamlit", "Docker"]}, "Automated Financial Reporting Workflow": {"description": "Created an automation workflow using Power Automate to streamline the generation of weekly financial reports, improving efficiency and reducing manual effort by 90%.", "tech": ["Power Automate", "SharePoint"]}, "Real-time Image Classification Model": {"description": "Developed and deployed an image classification model using CNNs in TensorFlow to classify product images from a live camera feed with an accuracy of 94%.", "tech": ["TensorFlow", "Keras", "OpenCV", "AWS SageMaker"]}}
 CERTIFICATIONS_DATA = [ {"image_path": os.path.join(CERTIFICATIONS_DIR, "aws_certified_machine_learning_specialty.png"), "title": "AWS Certified Machine Learning – Specialty", "description": "Validated expertise in building, training, tuning, and deploying machine learning models using AWS services."}, {"image_path": os.path.join(CERTIFICATIONS_DIR, "IBM Data Science.png"), "title": "IBM Data Science Professional Certificate", "description": "Acquired proficiency in Python programming, SQL, data analysis, visualization, machine learning, and deep learning through a series of courses."}, {"image_path": os.path.join(CERTIFICATIONS_DIR, "Azure_AI_Fundamentals.png"), "title": "Microsoft Certified: Azure AI Fundamentals", "description": "Acquired foundational knowledge of artificial intelligence (AI) and machine learning (ML) concepts, and how they're implemented using Microsoft Azure services."},]
 AWARDS_DATA = [ {"image_path": os.path.join(AWARDS_DIR, "RnR_Individual_Brilliance.jpg"), "title": "Individual Brilliance", "description": "Awarded for significant contributions in internal initiatives and client delivery."}, {"image_path": os.path.join(AWARDS_DIR, "Infinity_Award_Crawl_Build_AI_Re-engineering.JPG"), "title": "Crawl Build AI Re-engineering", "description": "Awarded for significant contributions to innovative AI solution development in 2023-24."}, {"image_path": os.path.join(AWARDS_DIR, "RnR_Meta_build_delivery_and_onboarding_team_Certificate.jpg"), "title": "Client Delivery and Onboarding", "description": "Awarded for significant contributions in team onboarding and client delivery in 2024"},]
+BADGES_DATA = [ {"image_path": os.path.join(BADGES_DIR, "Deeplearning.png"), "title": "Deep Learning"}, {"image_path": os.path.join(BADGES_DIR, "Applied_Data_Science_Capstone.png"), "title": "Applied Data Science Capstone"}, {"image_path": os.path.join(BADGES_DIR, "Accelerated Deep Learning with GPU.png"), "title": "Accelerated Deep Learning with GPU"},]
 EDUCATION = { "Institution": "M.H. Saboo Siddik College of Engineering, Mumbai", "Degree": "Bachelor of Engineering in Information Technology", "Graduation Year": "2022", "CGPA": "8.48 / 10.00"}
 SOFT_SKILLS = ["Leadership & Mentoring", "Effective Communication", "Agile & Scrum Methodologies", "Creative Problem-Solving", "Stakeholder Collaboration"]
 
@@ -252,8 +254,8 @@ with main_col:
             if img_b64 := get_image_as_base64(cert["image_path"]):
                 st.markdown(f'<div class="cert-award-item"><img src="data:image/png;base64,{img_b64}" alt="{cert["title"]}"><p><b>{cert["title"]}</b></p></div><br>', unsafe_allow_html=True)
     with col2:
-        st.markdown("<h2 id='awards'>🏆 Awards</h2>", unsafe_allow_html=True)
-        for award in AWARDS_DATA:
+        st.markdown("<h2 id='awards'>🏆 Badges</h2>", unsafe_allow_html=True)
+        for award in BADGES_DATA:
             if img_b64 := get_image_as_base64(award["image_path"]):
                 st.markdown(f'<div class="cert-award-item"><img src="data:image/png;base64,{img_b64}" alt="{award["title"]}"><p><b>{award["title"]}</b></p></div><br>', unsafe_allow_html=True)
     st.divider()
